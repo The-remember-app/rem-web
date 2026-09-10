@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  dev-env:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: my_system_dev
+    user: "1000:1000" # Или текущий UID:GID пользователя хоста для корректных прав на создаваемые .tmp файлы
+    ports:
+      - "0.0.0.0:4200:4200"     # Web Dev Server
+      - "0.0.0.0:24678:24678"   # Vite HMR WebSocket
+      - "0.0.0.0:8081:8081"     # Metro Bundler (Mobile)
+      - "0.0.0.0:19000:19000"   # Expo Server
+    environment:
+      - NODE_ENV=development
+#      - NX_REJECT_UNKNOWN_LOCAL_CACHE=0
+      - CHOKIDAR_USEPOLLING=true # Обязательно для отслеживания изменений файлов через bind mounts
+      - WATCHPACK_POLLING=true
+      - NX_DAEMON=false
+    volumes:
+      # Монтируем весь проект с хоста в контейнер
+      - .:/app
+      # Монтируем локальные директории хоста для кэша и бинарников, избегая виртуального диска Docker
+      - ./node_modules_docker:/app/node_modules
+      - ./.nx/cache:/app/.nx/cache
+      - ./.tmp:/app/.tmp
+      - ./.cache:/app/.cache
+      - ./dist:/app/dist

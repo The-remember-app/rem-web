@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+# Устанавливаем системные зависимости для сборки бинарников (если понадобятся для БД)
+RUN apk add --no-cache python3 make g++ git
+
+WORKDIR /app
+
+# Открываем порты для Vite (Web Dev Server + HMR WebSocket)
+EXPOSE 4200
+EXPOSE 24678
+
+# Открываем порты для Expo / Metro Bundler (Mobile)
+EXPOSE 8081
+EXPOSE 19000
+EXPOSE 19001
+EXPOSE 19002
+
+CMD ["npx", "nx", "serve", "web-host", "--host=0.0.0.0"]
