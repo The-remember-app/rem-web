@@ -5,9 +5,9 @@
     "emitDeclarationOnly": true,
     "importHelpers": true,
     "isolatedModules": true,
-    "lib": ["es2022"],
+    "lib": ["DOM", "ES2022"],
     "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "bundler",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
@@ -16,6 +16,26 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@rem-web/domain": ["./libs/domain/src/index.ts"],
+      "@rem-web/infrastructure": ["./libs/infrastructure/src/index.ts"],
+      "@rem-web/presentation": ["./libs/presentation/src/index.ts"],
+      "@rem-web/use-cases": ["./libs/use-cases/src/index.ts"],
+      "@rem-web/shared-app": ["./libs/shared-app/src/index.ts"]
+    },
     "customConditions": ["@rem-web/source"]
   }
 }
+//{
+//  "compilerOptions": {
+//    "baseUrl": ".",
+//    "paths": {
+//      "@my-system/domain": ["libs/domain/src/index.ts"]
+//    }
+//  }
+//}

@@ -2,5 +2,24 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./apps/web-host"
+    },
+    {
+      "path": "./libs/domain"
+    },
+    {
+      "path": "./libs/use-cases"
+    },
+    {
+      "path": "./libs/presentation"
+    },
+    {
+      "path": "./libs/infrastructure"
+    },
+    {
+      "path": "./libs/shared-app"
+    }
+  ]
 }
