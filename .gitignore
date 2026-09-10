@@ -43,3 +43,10 @@ Thumbs.db
 .nx/migrate-runs
 .claude/worktrees
 .claude/settings.local.json
+node_modules_docker
+
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+# auto generated
+/libs/infrastructure/src/network/api/generated/code/**/*
