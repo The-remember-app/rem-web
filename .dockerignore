@@ -1,0 +1,6 @@
+node_modules
+dist
+.nx/cache
+.tmp
+.cache
+npm-debug.log
