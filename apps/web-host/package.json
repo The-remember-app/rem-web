@@ -1,0 +1,8 @@
+{
+  "name": "@rem-web/web-host",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "vite-tsconfig-paths": "^6.1.1"
+  }
+}
