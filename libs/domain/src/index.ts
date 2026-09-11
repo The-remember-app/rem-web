@@ -1,4 +1,3 @@
-export * from './test';
 export * from './entities/enums';
 export * from './entities/user';
 export * from './entities/folder';

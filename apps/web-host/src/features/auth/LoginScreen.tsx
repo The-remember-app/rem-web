@@ -1,11 +1,11 @@
 import React, { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 import { useDI } from '@rem-web/shared-app'; // Берем хук из общего shared мода
 
 export const LoginScreen: React.FC = () => {
     // Достаем authUserUseCase (имя должно точно совпадать с App.tsx)
     const { authUserUseCase } = useDI();
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -20,7 +20,7 @@ export const LoginScreen: React.FC = () => {
             await authUserUseCase.execute({ username, password });
 
             // 2. Успех: переходим на экран Dashboard
-            navigate('/dashboard', { replace: true });
+            // navigate('/dashboard', { replace: true });
         } catch (error) {
             // 3. Заглушка для ошибок
             console.error('[LoginScreen] Auth failed', error);

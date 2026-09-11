@@ -1,60 +1,256 @@
-import React, { useMemo } from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-import { store, UserPresenter } from '@rem-web/presentation';
-import { AuthUserUseCase } from '@rem-web/use-cases';
-import { WatermelonUserRepository, WebWorkerBridge, database } from '@rem-web/infrastructure';
-import { DIContext } from "@rem-web/shared-app";
+import {AppDependencies, store, UserPresenter} from '@rem-web/presentation';
+import { AuthUserUseCase, LogoutUserUseCase } from '@rem-web/use-cases';
+import { RxDbUserRepository, WebWorkerBridge, initDatabase } from '@rem-web/infrastructure';
+import { DIContext, AuthBoundary } from "@rem-web/shared-app";
 
 import SyncWorker from '../worker/sync.worker?worker';
 import { LoginScreen } from '../features/auth/LoginScreen';
+import { DashboardScreen } from '../features/auth/DashboardScreen';
+import {IUserRepository} from "@rem-web/domain";
 
-// Временный заглушечный экран для проверки успешной авторизации
-const DashboardScreen: React.FC = () => {
-    return (
-        <div className="flex flex-col items-center justify-center h-screen bg-green-50">
-            <h1 className="text-3xl font-bold text-green-700 mb-2">Dashboard</h1>
-            <p className="text-gray-600">Авторизация прошла успешно!</p>
-        </div>
-    );
+const UnauthorizedRoutes = () => (
+    <Routes>
+        <Route path="/login" element={<LoginScreen />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+);
+
+const AuthorizedRoutes = () => (
+    <Routes>
+        <Route path="/dashboard" element={<DashboardScreen />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+);
+
+// Компонент, запускающий синхронизацию Презентера с Редаксом
+
+const StateSyncManager: React.FC<{ presenter: UserPresenter }> = ({ presenter }) => {
+
+    useEffect(() => {
+
+        const unsubscribe = presenter.startObservingActiveUser();
+
+        return () => unsubscribe();
+
+    }, [presenter]);
+
+    return null;
+
 };
-
 export const App: React.FC = () => {
-    const dependencies = useMemo(() => {
-        // 1. Создаем реальный экземпляр воркера
-        const workerInstance = new SyncWorker();
-        const workerBridge = new WebWorkerBridge(workerInstance);
+    const [dependencies, setDependencies] = useState<AppDependencies | null>(null);
+    const [error, setError] = useState<Error | null>(null);
 
-        // 2. Инфраструктура и UseCases
-        const userRepository = new WatermelonUserRepository(database);
-        const authUserUseCase = new AuthUserUseCase(userRepository, workerBridge);
+    useEffect(() => {
+        let cancelled = false;
+        let worker: Worker | null = null;
 
-        // 3. Презентеры (передаем dispatch)
-        const userPresenter = new UserPresenter(userRepository, store.dispatch);
+        const bootstrap = async () => {
+            try {
+                console.log('[App Bootstrap] Starting...');
 
-        return {
-            userRepository,
-            authUserUseCase, // Ключ совпадает с тем, что ждет LoginScreen
-            userPresenter
+
+
+                if (cancelled) {
+                    return;
+                }
+
+                console.log('[App Bootstrap] DB initialized');
+
+                worker = new SyncWorker();
+
+                worker.addEventListener('error', (event) => {
+                    console.error('[SyncWorker] error:', event);
+                });
+
+                worker.addEventListener('messageerror', (event) => {
+                    console.error('[SyncWorker] messageerror:', event);
+                });
+
+                console.log('[App Bootstrap] Worker created');
+
+                const db = await initDatabase();
+                const userRepository =
+                    new RxDbUserRepository(db);
+
+                const workerBridge = new WebWorkerBridge(worker);
+
+
+                const authUserUseCase =
+                    new AuthUserUseCase(
+                        userRepository,
+                        workerBridge
+                    );
+
+                const logoutUserUseCase =
+                    new LogoutUserUseCase(userRepository);
+
+                const userPresenter =
+                    new UserPresenter(
+                        userRepository,
+                        store.dispatch
+                    );
+
+                if (cancelled) {
+                    worker.terminate();
+                    return;
+                }
+
+                setDependencies({
+                    userRepository,
+                    authUserUseCase,
+                    logoutUserUseCase,
+                    userPresenter,
+                });
+
+            } catch (error) {
+                if (!cancelled) {
+                    console.error(
+                        '[App Bootstrap] Failed:',
+                        error
+                    );
+
+                    setError(
+                        error instanceof Error
+                            ? error
+                            : new Error(String(error))
+                    );
+                }
+            }
+        };
+
+        bootstrap();
+
+        return () => {
+            cancelled = true;
+
+            if (worker) {
+                console.log('[App Bootstrap] Terminating worker');
+                worker.terminate();
+                worker = null;
+            }
         };
     }, []);
+
+    if (error) {
+        return (
+            <div>
+                Failed to initialize application:
+                {error.message}
+            </div>
+        );
+    }
+
+    if (!dependencies) {
+        return (
+            <div>
+                Initializing...
+            </div>
+        );
+    }
 
     return (
         <ReduxProvider store={store}>
             <DIContext.Provider value={dependencies}>
-                {/* Оборачиваем дерево в BrowserRouter */}
+                <StateSyncManager
+                    presenter={dependencies.userPresenter}
+                />
+
                 <BrowserRouter>
-                    <Routes>
-                        <Route path="/login" element={<LoginScreen />} />
-                        <Route path="/dashboard" element={<DashboardScreen />} />
-                        {/* Редирект по умолчанию на экран логина */}
-                        <Route path="*" element={<Navigate to="/login" replace />} />
-                    </Routes>
+                    <AuthBoundary
+                        authorizedLayout={<AuthorizedRoutes />}
+                        unauthorizedLayout={<UnauthorizedRoutes />}
+                    />
                 </BrowserRouter>
             </DIContext.Provider>
         </ReduxProvider>
     );
 };
-
 export default App;
+
+//
+//
+// export const App: React.FC = () => {
+//
+//     const dependencies = useMemo(() => {
+//
+//         const workerInstance = new SyncWorker();
+//
+//         const workerBridge = new WebWorkerBridge(workerInstance);
+//
+//
+//
+//         const userRepository = new WatermelonUserRepository(database);
+//
+//
+//
+// // Use Cases
+//
+//         const authUserUseCase = new AuthUserUseCase(userRepository, workerBridge);
+//
+//         const logoutUserUseCase = new LogoutUserUseCase(userRepository);
+//
+//
+//
+//         const userPresenter = new UserPresenter(userRepository, store.dispatch);
+//
+//
+//
+//         return {
+//
+//             userRepository,
+//
+//             authUserUseCase,
+//
+//             logoutUserUseCase,
+//
+//             userPresenter
+//
+//         };
+//
+//     }, []);
+//
+//
+//
+//     return (
+//
+//         <ReduxProvider store={store}>
+//
+//             <DIContext.Provider value={dependencies}>
+//
+//                 {/* Запускаем слушатель БД */}
+//
+//                 <StateSyncManager presenter={dependencies.userPresenter} />
+//
+//
+//
+//                 <BrowserRouter>
+//
+//                     {/* Разделяемый шлюз переключает целые графы навигации */}
+//
+//                     <AuthBoundary
+//
+//                         authorizedLayout={<AuthorizedRoutes />}
+//
+//                         unauthorizedLayout={<UnauthorizedRoutes />}
+//
+//                     />
+//
+//                 </BrowserRouter>
+//
+//             </DIContext.Provider>
+//
+//         </ReduxProvider>
+//
+//     );
+//
+// };
+
+
+
+// export default App;
+

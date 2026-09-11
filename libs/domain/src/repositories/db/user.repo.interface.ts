@@ -12,4 +12,5 @@ export interface IUserRepository {
     delete(uuid: string): Promise<void>;
     // Реактивный поток, отдающий чистую сущность Domain
     observeActiveUser(): Observable<User | null>;
+    clearActiveUser():  Promise<void>;
 }

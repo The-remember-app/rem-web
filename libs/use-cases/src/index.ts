@@ -2,3 +2,4 @@
 export * from './lib/ports/worker-bridge.interface';
 export * from './lib/dto/auth.dto';
 export * from './lib/user/auth-user.use-case';
+export * from './lib/user/logout-user.use-case';

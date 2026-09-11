@@ -1,9 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { User } from '@rem-web/domain';
+import {UserDTO} from "../mappers/user-dto.mapper";
 
 
 interface UserState {
-    currentUser: User | null;
+    currentUser:  UserDTO | null;
     isAuthenticated: boolean;
 }
 
@@ -16,9 +16,9 @@ export const userSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        setUser: (state, action: PayloadAction<User>) => {
+        setUser: (state, action: PayloadAction<UserDTO>) => {
             state.currentUser = action.payload;
-            state.isAuthenticated = true;
+            state.isAuthenticated = Boolean(action.payload && action.payload.active);
         },
         clearUser: (state) => {
             state.currentUser = null;
@@ -29,3 +29,28 @@ export const userSlice = createSlice({
 
 export const { setUser, clearUser } = userSlice.actions;
 export const userReducer = userSlice.reducer;
+
+//
+// interface UserState {
+//     currentUser: UserDTO | null;
+//     isAuthenticated: boolean;
+// }
+
+// const initialState: UserState = {
+//     currentUser: null,
+//     isAuthenticated: false,
+// };
+
+// export const userSlice = createSlice({
+//     name: 'user',
+//     initialState,
+//     reducers: {
+//         setUser: (state, action: PayloadAction<UserDTO | null>) => {
+//             state.currentUser = action.payload;
+//             // Если DTO существует и пользователь активен — флаг true
+//             state.isAuthenticated = Boolean(action.payload && action.payload.active);
+//         },
+//     },
+// });
+//
+// export const { setUser } = userSlice.actions;

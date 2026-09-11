@@ -1,42 +1,81 @@
-import {WorkerRequest, WorkerResponse, WORKER_COMMANDS, AuthResponseDto} from '@rem-web/use-cases';
+/// <reference lib="webworker" />
 
-// import { WorkerRequest, WORKER_COMMANDS } from '@rem-web/use-cases';
-import {WatermelonUserRepository, database, AuthNetworkService, getGlobalAccessToken} from '@rem-web/infrastructure';
-// import {getGlobalAccessToken} from "../../../../libs/infrastructure/src/network/api/api-client";
-// import {getGlobalAccessToken} from "@rem-web/infrastructure";
-// import {AuthNetworkService} from "../../../../libs/infrastructure/src/network/services/auth-network.service";
-// import {  } from './services/auth-network.service';
+import {
+    WorkerRequest,
+    WorkerResponse,
+    WORKER_COMMANDS,
+    AuthResponseDto,
+} from '@rem-web/use-cases';
+import {
+    RxDbUserRepository,
+    initDatabase,
+    AuthNetworkService,
+    getGlobalAccessToken,
+    setGlobalAccessToken,
+} from '@rem-web/infrastructure';
 
-const userRepository = new WatermelonUserRepository(database);
-const authNetworkService = new AuthNetworkService(userRepository);
+let userRepository: RxDbUserRepository | null = null;
+let authNetworkService: AuthNetworkService | null = null;
 
+/**
+ * Один промис на всю жизнь воркера.
+ * Стартует сразу при загрузке модуля, без top-level await.
+ * Повторные await просто ждут тот же промис — гонки init нет.
+ */
+const workerReady: Promise<void> = bootstrapWorker();
 
-// Внутреннее состояние воркера. Безопасно изолировано от UI-потока.
-// let memoryAccessToken: string | null = null;
-// let memoryRefreshToken: string | null = null;
+async function bootstrapWorker(): Promise<void> {
+    const db = await initDatabase();
 
-// Слушаем сообщения из главного потока
+    userRepository = new RxDbUserRepository(db);
+    authNetworkService = new AuthNetworkService(userRepository);
+
+    userRepository.observeActiveUser().subscribe({
+        next: (user) => {
+            if (user?.active) {
+                console.log('[Worker Auth] Active user detected:', user.uuid);
+            } else {
+                setGlobalAccessToken(null);
+                console.log('[Worker Auth] User deactivated. Access token cleared.');
+            }
+        },
+        error: (err) => {
+            console.error('[Worker Auth] Error observing user state:', err);
+            setGlobalAccessToken(null);
+        },
+    });
+}
+
+// ВАЖНО: регистрация синхронная, до завершения bootstrapWorker.
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     const { correlationId, type, payload } = event.data;
 
     try {
-        let resultData;
+        await workerReady;
+
+        if (!authNetworkService || !userRepository) {
+            throw new Error('Worker database is not initialized');
+        }
+
+        let resultData: unknown;
 
         switch (type) {
-            case WORKER_COMMANDS.AUTH_LOGIN:
-                // 1. Принимаем credentials из сообщения
+            case WORKER_COMMANDS.AUTH_LOGIN: {
                 const user = await authNetworkService.login(payload as any);
+
                 const bridgeAnswer: AuthResponseDto = {
                     accessToken: getGlobalAccessToken(),
-                    refreshToken: "", // TODO: добавить рефреш токен,
-                    user: user,
-                }
-                self.postMessage({
+                    refreshToken: '', // TODO: добавить refresh token
+                    user,
+                };
+
+                sendResponse({
                     correlationId,
                     success: true,
                     data: bridgeAnswer,
                 });
                 return;
+            }
 
             case WORKER_COMMANDS.SYNC_FULL:
                 // resultData = await handleFullSync();
@@ -46,25 +85,27 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
                 throw new Error(`Unknown command type: ${type}`);
         }
 
-        // Отправляем успешный ответ
         sendResponse({
             correlationId,
             success: true,
             data: resultData,
         });
-    } catch (error: any) {
-        // Отправляем ошибку
-        let errCode = 'WORKER_ERROR';
-        if (type === WORKER_COMMANDS.AUTH_LOGIN) {
-            errCode = 'AUTH_LOGIN';
-        }
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        const isInitError = !authNetworkService;
 
         sendResponse({
             correlationId,
             success: false,
-            error: { code: errCode, message: error.message },
+            error: {
+                code: isInitError
+                    ? 'WORKER_INIT_ERROR'
+                    : type === WORKER_COMMANDS.AUTH_LOGIN
+                        ? 'AUTH_LOGIN'
+                        : 'WORKER_ERROR',
+                message,
+            },
         });
-
     }
 };
 
