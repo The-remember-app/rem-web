@@ -10,7 +10,7 @@ export class AuthUserUseCase {
 
     public async execute(dto: LoginRequestDto): Promise<User> {
         this.validate(dto);
-
+        console.log("AuthUserUseCase started");
         // 1. Отправляем сетевой запрос через Worker-поток
         const response = await this.workerBridge.send<AuthResponseDto, LoginRequestDto>(
             WORKER_COMMANDS.AUTH_LOGIN,
