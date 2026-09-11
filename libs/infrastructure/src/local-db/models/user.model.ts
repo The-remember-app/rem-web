@@ -1,14 +1,31 @@
-import { Model } from '@nozbe/watermelondb';
-import { field, text, date } from '@nozbe/watermelondb/decorators';
+import { RxJsonSchema } from 'rxdb';
 
-export default class UserModel extends Model {
-    static table = 'users';
+export type UserDocType = {
+    uuid: string;
+    username: string;
+    email: string;
+    name: string;
+    surname: string;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+};
 
-    @text('username') username!: string;
-    @text('email') email!: string;
-    @text('name') name!: string;
-    @text('surname') surname!: string;
-    @field('active') active!: boolean;
-    @date('created_at') createdAt!: Date;
-    @date('updated_at') updatedAt!: Date;
-}
+export const userSchema: RxJsonSchema<UserDocType> = {
+    title: 'user schema',
+    version: 0,
+    description: 'Describes a user profile',
+    primaryKey: 'uuid', // Важно: RxDB требует явного указания первичного ключа
+    type: 'object',
+    properties: {
+        uuid: { type: 'string', maxLength: 100 },
+        username: { type: 'string' },
+        email: { type: 'string' },
+        name: { type: 'string' },
+        surname: { type: 'string' },
+        active: { type: 'boolean' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+    },
+    required: ['uuid', 'username', 'email', 'active'],
+};

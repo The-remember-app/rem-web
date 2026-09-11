@@ -1,45 +1,37 @@
-import { Database } from '@nozbe/watermelondb';
-// import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
-import { myAppSchema } from './schema';
-import UserModel from './models/user.model';
-import ModuleModel from './models/module.model';
-import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
-// Импорт остальных моделей...
+import { createRxDatabase, addRxPlugin, RxDatabase } from 'rxdb';
+import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
+import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
+import { RxDBUpdatePlugin } from 'rxdb/plugins/update';
+import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
+import {UserDocType, userSchema} from "./models/user.model";
+// import { userSchema, UserDocType } from './schemas/user.schema';
 
-// const adapter = new SQLiteAdapter({
-//     schema: myAppSchema,
-//     // migrations, // если есть миграции
-//     jsi: true, // Использование JSI для максимальной производительности в React Native
-//     onSetUpError: (error) => {
-//         console.error('Database setup failed:', error);
-//     },
-// });
+if (process.env.NODE_ENV !== 'production') {
+    addRxPlugin(RxDBDevModePlugin);
+}
+addRxPlugin(RxDBUpdatePlugin);
 
-// export const database = new Database({
-//     adapter,
-//     modelClasses: [
-//         UserModel,
-//         ModuleModel,
-//         // Остальные модели классов
-//     ],
-// });
+export type MyDatabaseCollections = {
+    users: import('rxdb').RxCollection<UserDocType>;
+};
 
+export type MyDatabase = RxDatabase<MyDatabaseCollections>;
 
-// import { Database } from '@nozbe/watermelondb';
+export async function initDatabase(): Promise<MyDatabase> {
+    const db = await createRxDatabase<MyDatabaseCollections>({
+        name: 'rem_web_rxdb',
+        // Оборачиваем Dexie хранилище валидатором для поддержки dev-mode
+        storage: wrappedValidateAjvStorage({
+            storage: getRxStorageDexie(),
+        }),
+        ignoreDuplicate: true,
+    });
 
-// import { schema } from './schema';
-// import UserModel from './models/user.model';
+    await db.addCollections({
+        users: {
+            schema: userSchema,
+        },
+    });
 
-const adapter = new LokiJSAdapter({
-    schema: myAppSchema,
-    useWebWorker: false, // или true, если базы крутятся внутри worker
-    useIncrementalIndexedDB: true,
-    onQuotaExceededError: (error) => {
-        console.error('IndexedDB quota exceeded:', error);
-    },
-});
-
-export const database = new Database({
-    adapter,
-    modelClasses: [UserModel, ModuleModel],
-});
+    return db;
+}

@@ -77,5 +77,5 @@ export class WebWorkerBridge implements IWorkerBridge {
 
     private handleError(error: ErrorEvent) {
         console.error('[WebWorkerBridge] Uncaught worker error:', error);
-    }
+        }
 }

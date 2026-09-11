@@ -47,6 +47,7 @@ export class AuthNetworkService {
         const userDto = userMeResponse.data.data as UserDto;
 
         // 5. Преобразование DTO в сущность Domain и сохранение в локальную БД
+        const exists = await this.userRepository.getById(userDto.id);
         const userDomain = new User({
             uuid: userDto.id,
             username: userDto.username,
@@ -57,8 +58,14 @@ export class AuthNetworkService {
             createdAt: new Date(userDto.created_at),
             updatedAt: new Date(userDto.updated_at),
         });
+        if (exists) {
+            await this.userRepository.update(userDomain);
+        } else {
+            await this.userRepository.save(userDomain);
+        }
 
-        await this.userRepository.save(userDomain);
+
+        // await this.userRepository.save(userDomain);
 
         return userDomain;
     }
