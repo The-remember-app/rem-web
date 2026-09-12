@@ -1,15 +1,13 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-import {FrontAppDependencies, store, UserPresenter} from '@rem-web/presentation';
-import { AuthUserFrontUseCase, LogoutUserFrontUseCase } from '@rem-web/use-cases';
-import { RxDbUserRepository, WebWorkerBridge, initDatabase } from '@rem-web/infrastructure';
+import { FrontAppDependencies, store, UserPresenter } from '@rem-web/presentation';
 import { DIContext, AuthBoundary } from "@rem-web/shared-app";
 
-import SyncWorker from '../../sync-thread/worker/sync.worker.run?worker';
 import { LoginScreen } from '../components/auth/LoginScreen';
 import { DashboardScreen } from '../components/auth/DashboardScreen';
+import { setupFrontDependencies } from '../di/front.di';
 
 const UnauthorizedRoutes = () => (
     <Routes>
@@ -25,137 +23,59 @@ const AuthorizedRoutes = () => (
     </Routes>
 );
 
-// Компонент, запускающий синхронизацию Презентера с Редаксом
-
 const StateSyncManager: React.FC<{ presenter: UserPresenter }> = ({ presenter }) => {
-
     useEffect(() => {
-
         const unsubscribe = presenter.startObservingActiveUser();
-
         return () => unsubscribe();
-
     }, [presenter]);
 
     return null;
-
 };
+
 export const App: React.FC = () => {
     const [dependencies, setDependencies] = useState<FrontAppDependencies | null>(null);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-        let cancelled = false;
-        let worker: Worker | null = null;
+        let disposeScope: (() => void) | null = null;
+        let isCancelled = false;
 
-        const bootstrap = async () => {
-            try {
-                console.log('[App Bootstrap] Starting...');
-
-                if (cancelled) {
+        setupFrontDependencies()
+            .then(({ dependencies, dispose }) => {
+                if (isCancelled) {
+                    dispose();
                     return;
                 }
-
-                console.log('[App Bootstrap] DB initialized');
-
-                worker = new SyncWorker();
-
-                worker.addEventListener('error', (event) => {
-                    console.error('[SyncWorker] error:', event);
-                });
-
-                worker.addEventListener('messageerror', (event) => {
-                    console.error('[SyncWorker] messageerror:', event);
-                });
-
-                console.log('[App Bootstrap] Worker created');
-
-                const db = await initDatabase();
-                const userRepository =
-                    new RxDbUserRepository(db);
-
-                const workerBridge = new WebWorkerBridge(worker);
-
-
-                const authUserUseCase =
-                    new AuthUserFrontUseCase(
-                        userRepository,
-                        workerBridge
-                    );
-
-                const logoutUserUseCase = new LogoutUserFrontUseCase(userRepository)
-
-                const userPresenter =
-                    new UserPresenter(
-                        userRepository,
-                        store.dispatch
-                    );
-
-                if (cancelled) {
-                    worker.terminate();
-                    return;
+                disposeScope = dispose;
+                setDependencies(dependencies);
+            })
+            .catch((err) => {
+                if (!isCancelled) {
+                    console.error('[App Bootstrap Failed]:', err);
+                    setError(err instanceof Error ? err : new Error(String(err)));
                 }
-
-                setDependencies({
-                    userRepository,
-                    authUserUseCase: authUserUseCase,
-                    logoutUserUseCase,
-                    userPresenter,
-                });
-
-            } catch (error) {
-                if (!cancelled) {
-                    console.error(
-                        '[App Bootstrap] Failed:',
-                        error
-                    );
-
-                    setError(
-                        error instanceof Error
-                            ? error
-                            : new Error(String(error))
-                    );
-                }
-            }
-        };
-
-        bootstrap();
+            });
 
         return () => {
-            cancelled = true;
-
-            if (worker) {
-                console.log('[App Bootstrap] Terminating bridge');
-                worker.terminate();
-                worker = null;
+            isCancelled = true;
+            if (disposeScope) {
+                disposeScope();
             }
         };
     }, []);
 
     if (error) {
-        return (
-            <div>
-                Failed to initialize application:
-                {error.message}
-            </div>
-        );
+        return <div>Failed to initialize application: {error.message}</div>;
     }
 
     if (!dependencies) {
-        return (
-            <div>
-                Initializing...
-            </div>
-        );
+        return <div>Initializing application...</div>;
     }
 
     return (
         <ReduxProvider store={store}>
             <DIContext.Provider value={dependencies}>
-                <StateSyncManager
-                    presenter={dependencies.userPresenter}
-                />
-
+                <StateSyncManager presenter={dependencies.userPresenter} />
                 <BrowserRouter>
                     <AuthBoundary
                         authorizedLayout={<AuthorizedRoutes />}
@@ -166,87 +86,5 @@ export const App: React.FC = () => {
         </ReduxProvider>
     );
 };
+
 export default App;
-
-//
-//
-// export const App: React.FC = () => {
-//
-//     const dependencies = useMemo(() => {
-//
-//         const workerInstance = new SyncWorker();
-//
-//         const workerBridge = new WebWorkerBridge(workerInstance);
-//
-//
-//
-//         const userRepository = new WatermelonUserRepository(database);
-//
-//
-//
-// // Use Cases
-//
-//         const authUserUseCase = new AuthUserFrontUseCase(userRepository, workerBridge);
-//
-//         const logoutUserUseCase = new LogoutUserFrontUseCase(userRepository);
-//
-//
-//
-//         const userPresenter = new UserPresenter(userRepository, store.dispatch);
-//
-//
-//
-//         return {
-//
-//             userRepository,
-//
-//             authUserUseCase,
-//
-//             logoutUserUseCase,
-//
-//             userPresenter
-//
-//         };
-//
-//     }, []);
-//
-//
-//
-//     return (
-//
-//         <ReduxProvider store={store}>
-//
-//             <DIContext.Provider value={dependencies}>
-//
-//                 {/* Запускаем слушатель БД */}
-//
-//                 <StateSyncManager presenter={dependencies.userPresenter} />
-//
-//
-//
-//                 <BrowserRouter>
-//
-//                     {/* Разделяемый шлюз переключает целые графы навигации */}
-//
-//                     <AuthBoundary
-//
-//                         authorizedLayout={<AuthorizedRoutes />}
-//
-//                         unauthorizedLayout={<UnauthorizedRoutes />}
-//
-//                     />
-//
-//                 </BrowserRouter>
-//
-//             </DIContext.Provider>
-//
-//         </ReduxProvider>
-//
-//     );
-//
-// };
-
-
-
-// export default App;
-

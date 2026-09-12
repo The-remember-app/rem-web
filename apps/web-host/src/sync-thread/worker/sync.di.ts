@@ -1,11 +1,12 @@
 import { initDatabase, RxDbUserRepository, AuthNetworkService } from '@rem-web/infrastructure';
 import { AuthUsersSyncUseCase } from '@rem-web/use-cases';
+import {SyncDependencies} from "@rem-web/presentation";
 
-export interface SyncDependencies {
-    authSyncUseCase: AuthUsersSyncUseCase;
-    userRepository: RxDbUserRepository;
-    authNetworkService: AuthNetworkService;
-}
+// export interface SyncDependencies {
+//     authSyncUseCase: AuthUsersSyncUseCase;
+//     userRepository: RxDbUserRepository;
+//     authNetworkService: AuthNetworkService;
+// }
 
 export async function setupSyncDependencies(): Promise<SyncDependencies> {
     const db = await initDatabase();
