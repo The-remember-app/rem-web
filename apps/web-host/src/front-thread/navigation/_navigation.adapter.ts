@@ -1,4 +1,4 @@
-// apps/web-host/src/infrastructure/_navigation.adapter.ts
+// apps/user-service-host/src/navigation/_navigation.adapter.ts
 import { INavigationService } from '@rem-web/presentation';
 import { NavigateFunction } from 'react-router-dom';
 

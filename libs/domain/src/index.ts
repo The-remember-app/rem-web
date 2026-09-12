@@ -15,3 +15,6 @@ export * from './repositories/db/term.repo.interface';
 export * from './repositories/db/sentence.repo.interface';
 export * from './repositories/db/term-adding-info.repo.interface';
 export * from './repositories/db/learn-term-datetime-mark.repo.interface';
+
+// services
+export * from './services/network/auth.interface.service';

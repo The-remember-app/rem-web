@@ -1,10 +1,18 @@
 import { IUserRepository } from '@rem-web/domain';
-import {AuthUserUseCase, LogoutUserUseCase} from '@rem-web/use-cases';
+import {AuthUsersSyncUseCase, LogoutUserFrontUseCase} from '@rem-web/use-cases';
 import { UserPresenter } from '../presenters/user.presenter';
+import {AuthUserFrontUseCase} from "@rem-web/use-cases";
 
-export interface AppDependencies {
+export interface FrontAppDependencies {
     userRepository: IUserRepository;
-    authUserUseCase: AuthUserUseCase;
+    authUserUseCase: AuthUserFrontUseCase;
     userPresenter: UserPresenter;
-    logoutUserUseCase: LogoutUserUseCase
+    logoutUserUseCase: LogoutUserFrontUseCase
+}
+
+export interface SyncAppDependencies {
+    userRepository: IUserRepository;
+    authUserUseCase: AuthUsersSyncUseCase;
+    // userPresenter: UserPresenter;
+    // logoutUserUseCase: LogoutUserFrontUseCase
 }

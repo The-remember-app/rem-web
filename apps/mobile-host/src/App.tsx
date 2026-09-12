@@ -1,8 +1,8 @@
 // import React from 'react';
 // import { StyleSheet, Text, View } from 'react-native';
 // import {getSystemStatus} from "../../../libs/domain/src";
-// // import {getSystemStatus} from "@rem-web/domain";
-// // import {getSystemStatus} from "@rem-web/domain";
+// // import {getSystemStatus} from "@rem-user-service/domain";
+// // import {getSystemStatus} from "@rem-user-service/domain";
 // // import { getSystemStatus } from '@my-system/domain';
 // // --jsx
 // export default function App() {

@@ -1,8 +1,8 @@
 import { User, IUserRepository } from '@rem-web/domain';
 import { LoginRequestDto, AuthResponseDto, WORKER_COMMANDS } from '../dto/auth.dto';
-import {IWorkerBridge} from "../ports/worker-bridge.interface";
+import {IWorkerBridge} from "../bridge/worker-bridge.interface";
 
-export class AuthUserUseCase {
+export class AuthUserFrontUseCase {
     constructor(
         private readonly userRepository: IUserRepository,
         private readonly workerBridge: IWorkerBridge
@@ -10,7 +10,7 @@ export class AuthUserUseCase {
 
     public async execute(dto: LoginRequestDto): Promise<User> {
         this.validate(dto);
-        console.log("AuthUserUseCase started");
+        console.log("AuthUserFrontUseCase started");
         // 1. Отправляем сетевой запрос через Worker-поток
         const response = await this.workerBridge.send<AuthResponseDto, LoginRequestDto>(
             WORKER_COMMANDS.AUTH_LOGIN,

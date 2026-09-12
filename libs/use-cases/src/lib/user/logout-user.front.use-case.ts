@@ -1,6 +1,6 @@
 import { IUserRepository } from '@rem-web/domain';
 
-export class LogoutUserUseCase {
+export class LogoutUserFrontUseCase {
     constructor(private readonly userRepository: IUserRepository) {}
 
     public async execute(): Promise<void> {

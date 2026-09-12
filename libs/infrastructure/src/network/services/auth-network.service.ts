@@ -1,4 +1,4 @@
-import { User, IUserRepository } from '@rem-web/domain';
+import { User } from '@rem-web/domain';
 import {
     loginForAccessTokenTokenPost,
     readUsersMeMeGet,
@@ -11,9 +11,9 @@ import {setGlobalAccessToken} from "../api/api-client";
 // import { setGlobalAccessToken } from '../api/api-client';
 
 export class AuthNetworkService {
-    constructor(private readonly userRepository: IUserRepository) {}
+    constructor() {}
 
-    public async login(credentials: BodyLoginForAccessTokenTokenPost): Promise<User> {
+    public async login(credentials: BodyLoginForAccessTokenTokenPost): Promise<string> {
         // 1 & 2. Отправка запроса на получение токена
         const loginResponse = await loginForAccessTokenTokenPost({
             body: {
@@ -29,12 +29,16 @@ export class AuthNetworkService {
             throw new Error('Authentication failed: Invalid credentials or server error.');
         }
 
-        const token = loginResponse.data.access_token;
+        return loginResponse.data.access_token;
 
+    }
+    public  setToken(token: string|null): void {
         // 6. Сохранение токена доступа для последующих запросов
         // console.log(token);
         setGlobalAccessToken(token);
+    }
 
+    public async getCurrentUser():  Promise<User>{
         // 4. Запрос данных текущего пользователя
         const userMeResponse = await readUsersMeMeGet();
 
@@ -45,9 +49,6 @@ export class AuthNetworkService {
         }
 
         const userDto = userMeResponse.data.data as UserDto;
-
-        // 5. Преобразование DTO в сущность Domain и сохранение в локальную БД
-        const exists = await this.userRepository.getById(userDto.id);
         const userDomain = new User({
             uuid: userDto.id,
             username: userDto.username,
@@ -58,14 +59,6 @@ export class AuthNetworkService {
             createdAt: new Date(userDto.created_at),
             updatedAt: new Date(userDto.updated_at),
         });
-        if (exists) {
-            await this.userRepository.update(userDomain);
-        } else {
-            await this.userRepository.save(userDomain);
-        }
-
-
-        // await this.userRepository.save(userDomain);
 
         return userDomain;
     }

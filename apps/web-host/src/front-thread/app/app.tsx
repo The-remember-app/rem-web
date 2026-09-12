@@ -1,16 +1,15 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
-import {AppDependencies, store, UserPresenter} from '@rem-web/presentation';
-import { AuthUserUseCase, LogoutUserUseCase } from '@rem-web/use-cases';
+import {FrontAppDependencies, store, UserPresenter} from '@rem-web/presentation';
+import { AuthUserFrontUseCase, LogoutUserFrontUseCase } from '@rem-web/use-cases';
 import { RxDbUserRepository, WebWorkerBridge, initDatabase } from '@rem-web/infrastructure';
 import { DIContext, AuthBoundary } from "@rem-web/shared-app";
 
-import SyncWorker from '../worker/sync.worker?worker';
-import { LoginScreen } from '../features/auth/LoginScreen';
-import { DashboardScreen } from '../features/auth/DashboardScreen';
-import {IUserRepository} from "@rem-web/domain";
+import SyncWorker from '../../sync-thread/worker/sync.worker.run?worker';
+import { LoginScreen } from '../components/auth/LoginScreen';
+import { DashboardScreen } from '../components/auth/DashboardScreen';
 
 const UnauthorizedRoutes = () => (
     <Routes>
@@ -42,7 +41,7 @@ const StateSyncManager: React.FC<{ presenter: UserPresenter }> = ({ presenter })
 
 };
 export const App: React.FC = () => {
-    const [dependencies, setDependencies] = useState<AppDependencies | null>(null);
+    const [dependencies, setDependencies] = useState<FrontAppDependencies | null>(null);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
@@ -52,8 +51,6 @@ export const App: React.FC = () => {
         const bootstrap = async () => {
             try {
                 console.log('[App Bootstrap] Starting...');
-
-
 
                 if (cancelled) {
                     return;
@@ -81,13 +78,12 @@ export const App: React.FC = () => {
 
 
                 const authUserUseCase =
-                    new AuthUserUseCase(
+                    new AuthUserFrontUseCase(
                         userRepository,
                         workerBridge
                     );
 
-                const logoutUserUseCase =
-                    new LogoutUserUseCase(userRepository);
+                const logoutUserUseCase = new LogoutUserFrontUseCase(userRepository)
 
                 const userPresenter =
                     new UserPresenter(
@@ -102,7 +98,7 @@ export const App: React.FC = () => {
 
                 setDependencies({
                     userRepository,
-                    authUserUseCase,
+                    authUserUseCase: authUserUseCase,
                     logoutUserUseCase,
                     userPresenter,
                 });
@@ -129,7 +125,7 @@ export const App: React.FC = () => {
             cancelled = true;
 
             if (worker) {
-                console.log('[App Bootstrap] Terminating worker');
+                console.log('[App Bootstrap] Terminating bridge');
                 worker.terminate();
                 worker = null;
             }
@@ -190,9 +186,9 @@ export default App;
 //
 // // Use Cases
 //
-//         const authUserUseCase = new AuthUserUseCase(userRepository, workerBridge);
+//         const authUserUseCase = new AuthUserFrontUseCase(userRepository, workerBridge);
 //
-//         const logoutUserUseCase = new LogoutUserUseCase(userRepository);
+//         const logoutUserUseCase = new LogoutUserFrontUseCase(userRepository);
 //
 //
 //

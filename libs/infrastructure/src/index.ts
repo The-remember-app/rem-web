@@ -1,5 +1,5 @@
-export * from './lib/worker/web-worker-bridge';
-export * from './di/container';
+export * from './common/bridge/web-worker-bridge';
+// export * from './di/_container';
 export * from './network/services/auth-network.service';
 export * from './local-db/database.provider';
 export * from './local-db/schema';

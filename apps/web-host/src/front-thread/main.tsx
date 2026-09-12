@@ -1,13 +1,13 @@
 
 
-import { StrictMode } from 'react';
+// import { StrictMode } from 'react';
 import * as ReactDOM from 'react-dom/client';
 // import App from './app/app';
 
-// import {AppContainer, WebWorkerBridge} from '@rem-web/infrastructure';
+// import {AppContainer, WebWorkerBridge} from '@rem-user-service/navigation';
 
-// Создаем инстанс Worker (Vite умеет собирать воркеры через ?worker)
-// import SyncWorker from './worker/sync.worker?worker';
+// Создаем инстанс Worker (Vite умеет собирать воркеры через ?bridge)
+// import SyncWorker from './bridge/sync.bridge?bridge';
 import {App} from "./app/app";
 
 // const workerInstance = new SyncWorker();

@@ -16,7 +16,7 @@ import path from 'path';
 
 export default defineConfig(() => ({
     root: import.meta.dirname,
-    cacheDir: '../node_modules/.vite/web-host',
+    cacheDir: '../node_modules/.vite/front-thread',
     compilerOptions: {
         types: ["vite/client"]
     },
@@ -49,18 +49,18 @@ export default defineConfig(() => ({
     },
 
     // Uncomment this if you are using workers.
-    // worker: {
+    // bridge: {
     //  plugins: [],
     // },
     resolve: {
         tsconfigPaths: true ,
         // alias: {
-        //     '@rem-web/domain': path.resolve(import.meta.dirname, '../../libs/domain/src/index.ts'),
+        //     '@rem-user-service/domain': path.resolve(import.meta.dirname, '../../libs/domain/src/index.ts'),
         // },
-        alias: {
-            // Игнорируем Node.js драйвер в браузерной сборке
-            'better-sqlite3': path.resolve(__dirname, './src/empty-stub.js'),
-        },
+        // alias: {
+        //     // Игнорируем Node.js драйвер в браузерной сборке
+        //     'better-sqlite3': path.resolve(__dirname, './src/empty-stub.js'),
+        // },
     },
     // optimizeDeps: {
     //     exclude: ['@nozbe/watermelondb'],
@@ -73,7 +73,7 @@ export default defineConfig(() => ({
         'commonjsOptions': { "transformMixedEsModules": true },
     },
     test: {
-        'name': '@rem-web/web-host',
+        'name': '@rem-front-thread/front-thread-host',
         'watch': false,
         'globals': true,
         'environment': "jsdom",
