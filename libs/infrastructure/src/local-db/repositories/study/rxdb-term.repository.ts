@@ -1,12 +1,29 @@
+// repositories/rxdb-term.repository.ts
+
 import { RxDatabase } from 'rxdb';
 import { Observable, map } from 'rxjs';
-// import { ITermRepository } from './term.repo.interface';
-// import { Term, TermProps } from '../../entities/term';
-import { toDate, toIsoString } from './tools';
-import {ITermRepository, Term,  TermProps} from "@rem-web/domain";
+import {EntityType, ITermRepository, Term, TermProps} from '@rem-web/domain';
+import { toDate, toIsoString } from '../tools';
+import {RxDbBasePersSyncRepository} from "../sync/abs-sync-pers.rxdb.repository";
+import {RxDbSentenceRepository} from "./rxdb-sentence.repository";
+import {RxDbTermAddingInfoRepository} from "./rxdb-term-adding-info.repository";
+import {RxDbLearnTermDatetimeMarkRepository} from "./rxdb-learn-term-datetime-mark.repository";
+// import { RxDbBasePersSyncRepository } from './rxdb-base-pers-sync.repository';
 
-export class RxDbTermRepository implements ITermRepository {
-    constructor(private readonly db: RxDatabase) {}
+export class RxDbTermRepository
+    extends RxDbBasePersSyncRepository<Term, TermProps>
+    implements ITermRepository
+{
+    constructor(db: RxDatabase<any>) {
+        super(db);
+    }
+
+    protected get collection() {
+        return this.db.terms;
+    }
+    protected get entityType(): EntityType {
+        return 'term';
+    }
 
     toDomain(doc: any): Term {
         return new Term({
@@ -23,6 +40,8 @@ export class RxDbTermRepository implements ITermRepository {
             updatedAt: toDate(doc.updatedAt),
             personalCreatedAt: toDate(doc.personalCreatedAt),
             personalUpdatedAt: toDate(doc.personalUpdatedAt),
+            syncState: doc.syncState ?? 'synced',
+            personalSyncState: doc.personalSyncState ?? 'synced',
         });
     }
 
@@ -41,31 +60,31 @@ export class RxDbTermRepository implements ITermRepository {
             updatedAt: toIsoString(entity.updatedAt),
             personalCreatedAt: toIsoString(entity.personalCreatedAt),
             personalUpdatedAt: toIsoString(entity.personalUpdatedAt),
+            syncState: entity.syncState,
+            personalSyncState: entity.personalSyncState,
         };
     }
 
-    async save(entity: Term): Promise<void> {
-        await this.db.terms.insert(this.toDocument(entity));
-    }
+    override async deleteCascading(uuid: string): Promise<void> {
+        const sentenceRepo = new RxDbSentenceRepository(this.db);
+        const sentences = await this.db.sentences.find({ selector: { termUuid: uuid } }).exec();
+        for (const doc of sentences) {
+            await sentenceRepo.delete(doc.uuid);
+        }
 
-    async upsert(entity: Term): Promise<void> {
-        await this.db.terms.upsert(this.toDocument(entity));
-    }
+        const addInfoRepo = new RxDbTermAddingInfoRepository(this.db);
+        const addInfos = await this.db.termAddingInfos.find({ selector: { termUuid: uuid } }).exec();
+        for (const doc of addInfos) {
+            await addInfoRepo.delete(doc.uuid);
+        }
 
-    async saveBatch(terms: Term[]): Promise<void> {
-        if (terms.length === 0) return;
-        await this.db.terms.bulkUpsert(terms.map(t => this.toDocument(t)));
-    }
+        const markRepo = new RxDbLearnTermDatetimeMarkRepository(this.db);
+        const marks = await this.db.learnMarks.find({ selector: { termUuid: uuid } }).exec();
+        for (const doc of marks) {
+            await markRepo.delete(doc.uuid);
+        }
 
-    async update(uuid: string, data: Partial<TermProps>): Promise<void> {
-        const doc = await this.db.terms.findOne({ selector: { uuid } }).exec();
-        if (!doc) return;
-        const patchData: Record<string, any> = { ...data };
-        if (data.createdAt) patchData.createdAt = toIsoString(data.createdAt);
-        if (data.updatedAt) patchData.updatedAt = toIsoString(data.updatedAt);
-        if (data.personalCreatedAt) patchData.personalCreatedAt = toIsoString(data.personalCreatedAt);
-        if (data.personalUpdatedAt) patchData.personalUpdatedAt = toIsoString(data.personalUpdatedAt);
-        await doc.patch(patchData);
+        await this.delete(uuid);
     }
 
     async updateCounters(
@@ -75,22 +94,6 @@ export class RxDbTermRepository implements ITermRepository {
     ): Promise<void> {
         const doc = await this.db.terms.findOne({ selector: { uuid, userUuid } }).exec();
         if (doc) await doc.patch(counters);
-    }
-
-    async delete(uuid: string): Promise<void> {
-        const doc = await this.db.terms.findOne({ selector: { uuid } }).exec();
-        if (doc) await doc.remove();
-    }
-
-    async findByPk(uuid: string): Promise<Term | null> {
-        const doc = await this.db.terms.findOne({ selector: { uuid } }).exec();
-        return doc ? this.toDomain(doc.toJSON()) : null;
-    }
-
-    observeByPk(uuid: string): Observable<Term | null> {
-        return (this.db.terms.findOne({ selector: { uuid } }).$ as Observable<any>).pipe(
-            map(doc => (doc ? this.toDomain(doc.toJSON()) : null))
-        );
     }
 
     async getById(uuid: string, userUuid: string): Promise<Term | null> {
@@ -116,26 +119,5 @@ export class RxDbTermRepository implements ITermRepository {
         return (this.db.terms.find({ selector: { moduleUuid, userUuid } }).$ as Observable<any>).pipe(
             map(docs => docs.map((d: any) => this.toDomain(d.toJSON())))
         );
-    }
-
-    // async saveBatch(entities: Term[]): Promise<void> {
-    //     if (entities.length === 0) return;
-    //     await this.db.terms.bulkInsert(entities.map(e => this.toDocument(e)));
-    // }
-
-    async upsertBatch(entities: Term[]): Promise<void> {
-        if (entities.length === 0) return;
-        await this.db.terms.bulkUpsert(entities.map(e => this.toDocument(e)));
-    }
-
-    async updateBatch(entities: Term[]): Promise<void> {
-        if (entities.length === 0) return;
-        await this.db.terms.bulkUpsert(entities.map(e => this.toDocument(e)));
-    }
-
-    async deleteBatch(entities: Term[]): Promise<void> {
-        if (entities.length === 0) return;
-        const uuids = entities.map(e => e.uuid);
-        await this.db.terms.find({ selector: { uuid: { $in: uuids } } }).remove();
     }
 }

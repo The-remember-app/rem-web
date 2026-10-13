@@ -2,15 +2,16 @@
 
 import { RxDatabase, RxCollection } from 'rxdb';
 import { Observable, map } from 'rxjs';
-import {IBaseRepository, IBaseSyncRepository} from '@rem-web/domain';
-import { toIsoString } from './tools';
+import {DeleteScope, EntityType, IBaseRepository} from '@rem-web/domain';
+import { toIsoString } from '../tools';
 
-export abstract class RxDbBaseSyncRepository<T extends { uuid: string }, TProps>
-    implements IBaseRepository<T, string, TProps>, IBaseSyncRepository<T, string, TProps>
+export abstract class RxDbAbsStudyRepository<T extends { uuid: string }, TProps>
+    implements IBaseRepository<T, string, TProps>
 {
     constructor(protected readonly db: RxDatabase) {}
 
     protected abstract get collection(): RxCollection;
+    protected abstract get entityType(): EntityType;
 
     abstract toDomain(doc: any): T;
     abstract toDocument(entity: T): Record<string, any>;
@@ -39,9 +40,14 @@ export abstract class RxDbBaseSyncRepository<T extends { uuid: string }, TProps>
         await doc.patch(patchData);
     }
 
-    async delete(pk: string): Promise<void> {
+    async delete(pk: string, scope: DeleteScope = 'full'): Promise<void> {
         const doc = await this.collection.findOne({ selector: { uuid: pk } }).exec();
-        if (doc) await doc.remove();
+        if (doc) {
+            const data = doc.toJSON();
+            const userUuid = data.userUuid || data.uuid; // fallback для User
+            await this.recordDeletedEntity(userUuid, pk, scope);
+            await doc.remove();
+        }
     }
 
     async saveBatch(entities: T[]): Promise<void> {
@@ -59,11 +65,33 @@ export abstract class RxDbBaseSyncRepository<T extends { uuid: string }, TProps>
         await this.collection.bulkUpsert(entities.map(e => this.toDocument(e)));
     }
 
-    async deleteBatch(entities: T[]): Promise<void> {
+    async deleteBatch(entities: T[], scope: DeleteScope = 'full'): Promise<void> {
         if (entities.length === 0) return;
         const uuids = entities.map(e => e.uuid);
-        await this.collection.find({ selector: { uuid: { $in: uuids } } }).remove();
+        const docs = await this.collection.find({ selector: { uuid: { $in: uuids } } }).exec();
+
+        const deletedRecords = docs.map(doc => {
+            const data = doc.toJSON();
+            return {
+                uuid: crypto.randomUUID(),
+                userUuid: data.userUuid || data.uuid,
+                entityUuid: data.uuid,
+                entityType: this.entityType,
+                scope,
+                deletedAt: new Date().toISOString(),
+            };
+        });
+
+        if (deletedRecords.length > 0) {
+            await this.db.deleted_entities.bulkUpsert(deletedRecords);
+        }
+
+        for (const doc of docs) {
+            await doc.remove();
+        }
     }
+
+
 
     async findByPk(pk: string): Promise<T | null> {
         const doc = await this.collection.findOne({ selector: { uuid: pk } }).exec();
@@ -97,43 +125,23 @@ export abstract class RxDbBaseSyncRepository<T extends { uuid: string }, TProps>
         await this.delete(pk);
     }
 
-    // --- IBaseSyncRepository ---
-    async getLocallyCreated(): Promise<T[]> {
-        const docs = await this.collection.find({ selector: { syncState: 'created' } }).exec();
-        return docs.map(d => this.toDomain(d.toJSON()));
+    // Хелпер записи удаленной сущности в outbox-таблицу deleted_entities
+    protected async recordDeletedEntity(
+        userUuid: string,
+        entityUuid: string,
+        scope: DeleteScope = 'full'
+    ): Promise<void> {
+        if (!userUuid || !entityUuid) return;
+        await this.db.deleted_entities.upsert({
+            uuid: crypto.randomUUID(),
+            userUuid,
+            entityUuid,
+            entityType: this.entityType,
+            scope,
+            deletedAt: new Date().toISOString(),
+        });
     }
 
-    async getLocallyModified(): Promise<T[]> {
-        const docs = await this.collection.find({ selector: { syncState: 'modified' } }).exec();
-        return docs.map(d => this.toDomain(d.toJSON()));
-    }
 
-    async getWithServerChanges(): Promise<T[]> {
-        const docs = await this.collection.find({ selector: { syncState: 'stale' } }).exec();
-        return docs.map(d => this.toDomain(d.toJSON()));
-    }
 
-    async getUpdating(): Promise<T[]> {
-        const docs = await this.collection.find({
-            selector: { syncState: { $in: ['syncing_to_server', 'syncing_from_server'] } },
-        }).exec();
-        return docs.map(d => this.toDomain(d.toJSON()));
-    }
-
-    async getWithSyncErrors(): Promise<T[]> {
-        const docs = await this.collection.find({ selector: { syncState: 'error' } }).exec();
-        return docs.map(d => this.toDomain(d.toJSON()));
-    }
-
-    observeLocallyCreated(): Observable<T | null> {
-        return (this.collection.find({ selector: { syncState: 'created' } }).$ as Observable<any[]>).pipe(
-            map(docs => (docs.length > 0 ? this.toDomain(docs[0].toJSON()) : null))
-        );
-    }
-
-    observeLocallyModified(): Observable<T | null> {
-        return (this.collection.find({ selector: { syncState: 'modified' } }).$ as Observable<any[]>).pipe(
-            map(docs => (docs.length > 0 ? this.toDomain(docs[0].toJSON()) : null))
-        );
-    }
 }

@@ -1,12 +1,27 @@
+// repositories/rxdb-term-adding-info.repository.ts
+
 import { RxDatabase } from 'rxdb';
 import { Observable, map } from 'rxjs';
-// import { ITermAddingInfoRepository } from './term-adding-info.repo.interface';
-// import { TermAddingInfo, TermAddingInfoProps } from '../../entities/term-adding-info';
-import { toDate, toIsoString } from './tools';
-import {ITermAddingInfoRepository, TermAddingInfo, TermAddingInfoProps} from "@rem-web/domain";
+import {EntityType, ITermAddingInfoRepository, TermAddingInfo, TermAddingInfoProps} from '@rem-web/domain';
+import { toDate, toIsoString } from '../tools';
+import {RxDbBaseSyncRepository} from "../sync/abs-sync.rxdb.repository";
+// import {RxDbBaseSyncRepository} from "./abs.rxdb.repository";
+// import { RxDbBaseSyncRepository } from './rxdb-base-sync.repository';
 
-export class RxDbTermAddingInfoRepository implements ITermAddingInfoRepository {
-    constructor(private readonly db: RxDatabase) {}
+export class RxDbTermAddingInfoRepository
+    extends RxDbBaseSyncRepository<TermAddingInfo, TermAddingInfoProps>
+    implements ITermAddingInfoRepository
+{
+    constructor(db: RxDatabase<any>) {
+        super(db);
+    }
+    protected get entityType(): EntityType {
+        return 'term_adding_info';
+    }
+
+    protected get collection() {
+        return this.db.termAddingInfos;
+    }
 
     toDomain(doc: any): TermAddingInfo {
         return new TermAddingInfo({
@@ -20,6 +35,7 @@ export class RxDbTermAddingInfoRepository implements ITermAddingInfoRepository {
             parentAddInfoUuid: doc.parentAddInfoUuid ?? null,
             createdAt: toDate(doc.createdAt),
             updatedAt: toDate(doc.updatedAt),
+            syncState: doc.syncState ?? 'synced',
         });
     }
 
@@ -35,52 +51,9 @@ export class RxDbTermAddingInfoRepository implements ITermAddingInfoRepository {
             parentAddInfoUuid: entity.parentAddInfoUuid ?? null,
             createdAt: toIsoString(entity.createdAt),
             updatedAt: toIsoString(entity.updatedAt),
+            syncState: entity.syncState,
         };
     }
-
-    async save(entity: TermAddingInfo): Promise<void> {
-        await this.db.termAddingInfos.insert(this.toDocument(entity));
-    }
-
-    async upsert(entity: TermAddingInfo): Promise<void> {
-        await this.db.termAddingInfos.upsert(this.toDocument(entity));
-    }
-
-    async saveBatch(infos: TermAddingInfo[]): Promise<void> {
-        if (infos.length === 0) return;
-        await this.db.termAddingInfos.bulkUpsert(infos.map(i => this.toDocument(i)));
-    }
-
-    async update(uuid: string, data: Partial<TermAddingInfoProps>): Promise<void> {
-        const doc = await this.db.termAddingInfos.findOne({ selector: { uuid } }).exec();
-        if (!doc) return;
-        const patchData: Record<string, any> = { ...data };
-        if (data.createdAt) patchData.createdAt = toIsoString(data.createdAt);
-        if (data.updatedAt) patchData.updatedAt = toIsoString(data.updatedAt);
-        await doc.patch(patchData);
-    }
-
-    async delete(uuid: string): Promise<void> {
-        const doc = await this.db.termAddingInfos.findOne({ selector: { uuid } }).exec();
-        if (doc) await doc.remove();
-    }
-
-    async findByPk(uuid: string): Promise<TermAddingInfo | null> {
-        const doc = await this.db.termAddingInfos.findOne({ selector: { uuid } }).exec();
-        return doc ? this.toDomain(doc.toJSON()) : null;
-    }
-
-    observeByPk(uuid: string): Observable<TermAddingInfo | null> {
-        return (this.db.termAddingInfos.findOne({ selector: { uuid } }).$ as Observable<any>).pipe(
-            map(doc => (doc ? this.toDomain(doc.toMutableJSON ? doc.toMutableJSON() : doc.toJSON()) : null))
-        );
-
-    }
-    // observeByPk(uuid: string): Observable<User | null> {
-    //     return (this.db.users.findOne({ selector: { uuid } }).$ as Observable<any>).pipe(
-    //         map(doc => (doc ? this.toDomain(doc.toMutableJSON ? doc.toMutableJSON() : doc.toJSON()) : null))
-    //     );
-    // }
 
     async getById(uuid: string, userUuid: string): Promise<TermAddingInfo | null> {
         const doc = await this.db.termAddingInfos.findOne({ selector: { uuid, userUuid } }).exec();
@@ -106,7 +79,6 @@ export class RxDbTermAddingInfoRepository implements ITermAddingInfoRepository {
             map(docs => docs.map((d: any) => this.toDomain(d.toJSON())))
         );
     }
-
 
     async findByParentAddInfoUuid(parentAddInfoUuid: string, userUuid: string): Promise<TermAddingInfo[]> {
         const docs = await this.db.termAddingInfos.find({ selector: { parentAddInfoUuid, userUuid } }).exec();
@@ -134,24 +106,18 @@ export class RxDbTermAddingInfoRepository implements ITermAddingInfoRepository {
         return docs.map(d => this.toDomain(d.toJSON()));
     }
 
-    // async saveBatch(entities: TermAddingInfo[]): Promise<void> {
-    //     if (entities.length === 0) return;
-    //     await this.db.termAddingInfos.bulkInsert(entities.map(e => this.toDocument(e)));
-    // }
+    override async deleteCascading(uuid: string): Promise<void> {
+        // Находим все дочерние элементы, ссылающиеся на текущую запись
+        const children = await this.db.termAddingInfos
+            .find({ selector: { parentAddInfoUuid: uuid } })
+            .exec();
 
-    async upsertBatch(entities: TermAddingInfo[]): Promise<void> {
-        if (entities.length === 0) return;
-        await this.db.termAddingInfos.bulkUpsert(entities.map(e => this.toDocument(e)));
-    }
+        // Рекурсивно удаляем каждого потомка
+        for (const child of children) {
+            await this.deleteCascading(child.uuid);
+        }
 
-    async updateBatch(entities: TermAddingInfo[]): Promise<void> {
-        if (entities.length === 0) return;
-        await this.db.termAddingInfos.bulkUpsert(entities.map(e => this.toDocument(e)));
-    }
-
-    async deleteBatch(entities: TermAddingInfo[]): Promise<void> {
-        if (entities.length === 0) return;
-        const uuids = entities.map(e => e.uuid);
-        await this.db.termAddingInfos.find({ selector: { uuid: { $in: uuids } } }).remove();
+        // Удаляем саму сущность (вызов super/this.delete запишет удаление в deleted_entities)
+        await this.delete(uuid);
     }
 }

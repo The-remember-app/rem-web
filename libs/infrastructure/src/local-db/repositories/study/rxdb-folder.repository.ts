@@ -1,12 +1,27 @@
+// repositories/rxdb-folder.repository.ts
+
 import { RxDatabase } from 'rxdb';
 import { Observable, map } from 'rxjs';
-// import { IFolderRepository } from './folder.repo.interface';
-// import { Folder, FolderProps } from '../../entities/folder';
-import { toDate, toIsoString } from './tools';
-import {Folder, FolderProps, IFolderRepository} from "@rem-web/domain";
+import {EntityType, Folder, FolderProps, IFolderRepository} from '@rem-web/domain';
+import { toDate, toIsoString } from '../tools';
+// import { RxDbBasePersSyncRepository } from './rxdb-base-pers-sync.repository';
+import { RxDbModuleRepository } from './rxdb-module.repository';
+import {RxDbBasePersSyncRepository} from "../sync/abs-sync-pers.rxdb.repository";
 
-export class RxDbFolderRepository implements IFolderRepository {
-    constructor(private readonly db: RxDatabase) {}
+export class RxDbFolderRepository
+    extends RxDbBasePersSyncRepository<Folder, FolderProps>
+    implements IFolderRepository
+{
+    constructor(db: RxDatabase<any>) {
+        super(db);
+    }
+    protected get entityType(): EntityType {
+        return 'folder';
+    }
+
+    protected get collection() {
+        return this.db.folders;
+    }
 
     toDomain(doc: any): Folder {
         return new Folder({
@@ -19,6 +34,8 @@ export class RxDbFolderRepository implements IFolderRepository {
             updatedAt: toDate(doc.updatedAt),
             personalCreatedAt: toDate(doc.personalCreatedAt),
             personalUpdatedAt: toDate(doc.personalUpdatedAt),
+            syncState: doc.syncState ?? 'synced',
+            personalSyncState: doc.personalSyncState ?? 'synced',
         });
     }
 
@@ -33,47 +50,24 @@ export class RxDbFolderRepository implements IFolderRepository {
             updatedAt: toIsoString(entity.updatedAt),
             personalCreatedAt: toIsoString(entity.personalCreatedAt),
             personalUpdatedAt: toIsoString(entity.personalUpdatedAt),
+            syncState: entity.syncState,
+            personalSyncState: entity.personalSyncState,
         };
     }
 
-    async save(entity: Folder): Promise<void> {
-        await this.db.folders.insert(this.toDocument(entity));
-    }
+    override async deleteCascading(uuid: string): Promise<void> {
+        const subFolders = await this.db.folders.find({ selector: { rootFolderUuid: uuid } }).exec();
+        for (const subFolder of subFolders) {
+            await this.deleteCascading(subFolder.uuid);
+        }
 
-    async upsert(entity: Folder): Promise<void> {
-        await this.db.folders.upsert(this.toDocument(entity));
-    }
+        const modules = await this.db.modules.find({ selector: { rootFolderUuid: uuid } }).exec();
+        const moduleRepo = new RxDbModuleRepository(this.db);
+        for (const mod of modules) {
+            await moduleRepo.deleteCascading(mod.uuid);
+        }
 
-    async saveBatch(folders: Folder[]): Promise<void> {
-        if (folders.length === 0) return;
-        await this.db.folders.bulkUpsert(folders.map(f => this.toDocument(f)));
-    }
-
-    async update(uuid: string, data: Partial<FolderProps>): Promise<void> {
-        const doc = await this.db.folders.findOne({ selector: { uuid } }).exec();
-        if (!doc) return;
-        const patchData: Record<string, any> = { ...data };
-        if (data.createdAt) patchData.createdAt = toIsoString(data.createdAt);
-        if (data.updatedAt) patchData.updatedAt = toIsoString(data.updatedAt);
-        if (data.personalCreatedAt) patchData.personalCreatedAt = toIsoString(data.personalCreatedAt);
-        if (data.personalUpdatedAt) patchData.personalUpdatedAt = toIsoString(data.personalUpdatedAt);
-        await doc.patch(patchData);
-    }
-
-    async delete(uuid: string): Promise<void> {
-        const doc = await this.db.folders.findOne({ selector: { uuid } }).exec();
-        if (doc) await doc.remove();
-    }
-
-    async findByPk(uuid: string): Promise<Folder | null> {
-        const doc = await this.db.folders.findOne({ selector: { uuid } }).exec();
-        return doc ? this.toDomain(doc.toJSON()) : null;
-    }
-
-    observeByPk(uuid: string): Observable<Folder | null> {
-        return (this.db.folders.findOne({ selector: { uuid } }).$ as Observable<any>).pipe(
-            map(doc => (doc ? this.toDomain(doc.toJSON()) : null))
-        );
+        await this.delete(uuid);
     }
 
     async getById(uuid: string, userUuid: string): Promise<Folder | null> {
@@ -120,26 +114,5 @@ export class RxDbFolderRepository implements IFolderRepository {
     async findByAuthorUuid(authorUuid: string): Promise<Folder[]> {
         const docs = await this.db.folders.find({ selector: { authorUuid } }).exec();
         return docs.map(d => this.toDomain(d.toJSON()));
-    }
-
-    // async saveBatch(entities: Folder[]): Promise<void> {
-    //     if (entities.length === 0) return;
-    //     await this.db.folders.bulkInsert(entities.map(e => this.toDocument(e)));
-    // }
-
-    async upsertBatch(entities: Folder[]): Promise<void> {
-        if (entities.length === 0) return;
-        await this.db.folders.bulkUpsert(entities.map(e => this.toDocument(e)));
-    }
-
-    async updateBatch(entities: Folder[]): Promise<void> {
-        if (entities.length === 0) return;
-        await this.db.folders.bulkUpsert(entities.map(e => this.toDocument(e)));
-    }
-
-    async deleteBatch(entities: Folder[]): Promise<void> {
-        if (entities.length === 0) return;
-        const uuids = entities.map(e => e.uuid);
-        await this.db.folders.find({ selector: { uuid: { $in: uuids } } }).remove();
     }
 }
