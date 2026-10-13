@@ -1,4 +1,5 @@
 import { RxJsonSchema } from 'rxdb';
+import { SyncState } from '../../types/sync-state.type';
 
 export type SentenceDocType = {
     uuid: string;
@@ -8,6 +9,7 @@ export type SentenceDocType = {
     termUuid: string;
     createdAt: string;
     updatedAt: string;
+    syncState: SyncState;
 };
 
 export const sentenceSchema: RxJsonSchema<SentenceDocType> = {
@@ -24,7 +26,8 @@ export const sentenceSchema: RxJsonSchema<SentenceDocType> = {
         termUuid: { type: 'string', maxLength: 100 },
         createdAt: { type: 'string', format: 'date-time' },
         updatedAt: { type: 'string', format: 'date-time' },
+        syncState: { type: 'string', maxLength: 50 },
     },
-    required: ['uuid', 'userUuid', 'termUuid', 'createdAt', 'updatedAt'],
-    indexes: ['userUuid', 'termUuid'],
+    required: ['uuid', 'userUuid', 'termUuid', 'createdAt', 'updatedAt', 'syncState'],
+    indexes: ['userUuid', 'termUuid', 'syncState'],
 };

@@ -1,4 +1,5 @@
 import { RxJsonSchema } from 'rxdb';
+import { SyncState } from '../../types/sync-state.type';
 
 export type UserDocType = {
     uuid: string;
@@ -10,6 +11,7 @@ export type UserDocType = {
     active: boolean;
     createdAt: string;
     updatedAt: string;
+    syncState: SyncState;
 };
 
 export const userSchema: RxJsonSchema<UserDocType> = {
@@ -28,7 +30,8 @@ export const userSchema: RxJsonSchema<UserDocType> = {
         active: { type: 'boolean' },
         createdAt: { type: 'string', format: 'date-time' },
         updatedAt: { type: 'string', format: 'date-time' },
+        syncState: { type: 'string', maxLength: 50 },
     },
-    required: ['uuid', 'username', 'email', 'name', 'surname', 'active', 'createdAt', 'updatedAt'],
-    indexes: ['username', 'email'],
+    required: ['uuid', 'username', 'email', 'name', 'surname', 'active', 'createdAt', 'updatedAt', 'syncState'],
+    indexes: ['username', 'email', 'syncState'],
 };

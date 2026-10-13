@@ -1,4 +1,5 @@
 import { RxJsonSchema } from 'rxdb';
+import { SyncState } from '../../types/sync-state.type';
 
 export type LearnTermDatetimeMarkDocType = {
     uuid: string;
@@ -11,6 +12,7 @@ export type LearnTermDatetimeMarkDocType = {
     watchType: string;
     createdAt: string;
     updatedAt: string;
+    syncState: SyncState;
 };
 
 export const learnTermDatetimeMarkSchema: RxJsonSchema<LearnTermDatetimeMarkDocType> = {
@@ -30,6 +32,7 @@ export const learnTermDatetimeMarkSchema: RxJsonSchema<LearnTermDatetimeMarkDocT
         watchType: { type: 'string' },
         createdAt: { type: 'string', format: 'date-time' },
         updatedAt: { type: 'string', format: 'date-time' },
+        syncState: { type: 'string', maxLength: 50 },
     },
     required: [
         'uuid',
@@ -42,6 +45,7 @@ export const learnTermDatetimeMarkSchema: RxJsonSchema<LearnTermDatetimeMarkDocT
         'watchType',
         'createdAt',
         'updatedAt',
+        'syncState',
     ],
-    indexes: ['userUuid', 'termUuid'],
+    indexes: ['userUuid', 'termUuid', 'syncState'],
 };

@@ -1,4 +1,5 @@
 import { RxJsonSchema } from 'rxdb';
+import { SyncState } from '../../types/sync-state.type';
 
 export type TermAddingInfoDocType = {
     uuid: string;
@@ -11,6 +12,7 @@ export type TermAddingInfoDocType = {
     parentAddInfoUuid?: string | null;
     createdAt: string;
     updatedAt: string;
+    syncState: SyncState;
 };
 
 export const termAddingInfoSchema: RxJsonSchema<TermAddingInfoDocType> = {
@@ -30,7 +32,8 @@ export const termAddingInfoSchema: RxJsonSchema<TermAddingInfoDocType> = {
         parentAddInfoUuid: { type: ['string', 'null'], maxLength: 100 },
         createdAt: { type: 'string', format: 'date-time' },
         updatedAt: { type: 'string', format: 'date-time' },
+        syncState: { type: 'string', maxLength: 50 },
     },
-    required: ['uuid', 'userUuid', 'addInfoType', 'termUuid', 'createdAt', 'updatedAt'],
-    indexes: ['userUuid', 'termUuid'],
+    required: ['uuid', 'userUuid', 'addInfoType', 'termUuid', 'createdAt', 'updatedAt', 'syncState'],
+    indexes: ['userUuid', 'termUuid', 'syncState'],
 };

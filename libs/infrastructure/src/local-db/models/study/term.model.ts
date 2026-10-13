@@ -1,4 +1,5 @@
 import { RxJsonSchema } from 'rxdb';
+import { SyncState } from '../../types/sync-state.type';
 
 export type TermDocType = {
     uuid: string;
@@ -14,6 +15,8 @@ export type TermDocType = {
     updatedAt: string;
     personalCreatedAt: string;
     personalUpdatedAt: string;
+    syncState: SyncState;
+    personalSyncState: SyncState;
 };
 
 export const termSchema: RxJsonSchema<TermDocType> = {
@@ -36,6 +39,8 @@ export const termSchema: RxJsonSchema<TermDocType> = {
         updatedAt: { type: 'string', format: 'date-time' },
         personalCreatedAt: { type: 'string', format: 'date-time' },
         personalUpdatedAt: { type: 'string', format: 'date-time' },
+        syncState: { type: 'string', maxLength: 50 },
+        personalSyncState: { type: 'string', maxLength: 50 },
     },
     required: [
         'uuid',
@@ -51,6 +56,8 @@ export const termSchema: RxJsonSchema<TermDocType> = {
         'updatedAt',
         'personalCreatedAt',
         'personalUpdatedAt',
+        'syncState',
+        'personalSyncState',
     ],
-    indexes: ['userUuid', 'moduleUuid'],
+    indexes: ['userUuid', 'moduleUuid', 'syncState', 'personalSyncState'],
 };

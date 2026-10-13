@@ -1,4 +1,5 @@
 import { RxJsonSchema } from 'rxdb';
+import { SyncState } from '../../types/sync-state.type';
 
 export type FolderDocType = {
     uuid: string;
@@ -10,6 +11,8 @@ export type FolderDocType = {
     updatedAt: string;
     personalCreatedAt: string;
     personalUpdatedAt: string;
+    syncState: SyncState;
+    personalSyncState: SyncState;
 };
 
 export const folderSchema: RxJsonSchema<FolderDocType> = {
@@ -28,6 +31,8 @@ export const folderSchema: RxJsonSchema<FolderDocType> = {
         updatedAt: { type: 'string', format: 'date-time' },
         personalCreatedAt: { type: 'string', format: 'date-time' },
         personalUpdatedAt: { type: 'string', format: 'date-time' },
+        syncState: { type: 'string', maxLength: 50 },
+        personalSyncState: { type: 'string', maxLength: 50 },
     },
     required: [
         'uuid',
@@ -38,6 +43,8 @@ export const folderSchema: RxJsonSchema<FolderDocType> = {
         'updatedAt',
         'personalCreatedAt',
         'personalUpdatedAt',
+        'syncState',
+        'personalSyncState',
     ],
-    indexes: ['userUuid', 'authorUuid'],
+    indexes: ['userUuid', 'authorUuid', 'syncState', 'personalSyncState'],
 };
