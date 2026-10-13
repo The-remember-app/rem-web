@@ -4,7 +4,7 @@ import type { CreateClientConfig } from './code/client.gen';
 export const createClientConfig: CreateClientConfig = (config) => {
     return {
         ...config,
-        baseUrl: import.meta.env.VITE_API_BASE_URL ?? 'https://dev-rem.xorze.keenetic.pro',
+        baseUrl:process.env.VITE_API_BASE_URL ?? 'https://dev-rem.xorze.keenetic.pro',
 
         headers: {
             'Accept': 'application/json',
