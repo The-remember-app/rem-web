@@ -2,10 +2,19 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "../../dist/out-tsc",
-    "lib": ["DOM", "ES2022"],
-      "experimentalDecorators": true,
-      "useDefineForClassFields": false
+    "lib": [
+      "DOM",
+      "ES2022"
+    ],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "allowImportingTsExtensions": false,
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
 
+  ]
 }

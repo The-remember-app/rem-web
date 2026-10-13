@@ -55,7 +55,7 @@ export default defineConfig(() => ({
     resolve: {
         tsconfigPaths: true ,
         // alias: {
-        //     '@rem-user-service/domain': path.resolve(import.meta.dirname, '../../libs/domain/src/index.ts'),
+        //     '@rem-auth-service/domain': path.resolve(import.meta.dirname, '../../libs/domain/src/index.ts'),
         // },
         // alias: {
         //     // Игнорируем Node.js драйвер в браузерной сборке

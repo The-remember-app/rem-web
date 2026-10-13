@@ -4,5 +4,12 @@
     "outDir": "../../dist/out-tsc",
     "lib": ["DOM", "ES2022"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "paths": {
+    "@rem-web/domain": ["./libs/domain/src/index.ts"],
+//    "@rem-web/infrastructure": ["./libs/infrastructure/src/index.ts"],
+//    "@rem-web/presentation": ["./libs/presentation/src/index.ts"],
+    "@rem-web/use-cases": ["./libs/use-cases/src/index.ts"],
+//    "@rem-web/shared-app": ["./libs/shared-app/src/index.ts"]
+  },
 }
