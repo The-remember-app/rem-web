@@ -1,6 +1,6 @@
 import { User, IUserRepository } from '@rem-web/domain';
-import { LoginRequestDto, AuthResponseDto, WORKER_COMMANDS } from '../dto/auth.dto';
-import {IWorkerBridge} from "../bridge/worker-bridge.interface";
+import { LoginRequestDto, AuthResponseDto, WORKER_COMMANDS } from '../../dto/auth.dto';
+import {IWorkerBridge} from "../../bridge/worker-bridge.interface";
 
 export class AuthUserFrontUseCase {
     constructor(
@@ -18,14 +18,14 @@ export class AuthUserFrontUseCase {
         );
         console.log(response);
         // 2. Создаем инстанс доменной сущности User
-        // const user = new User({
-        //     uuid: response.user.uuid,
-        //     username: response.user.username,
-        //     email: response.user.email,
-        //     name: response.user.name,
-        //     surname: response.user.surname,
-        //     createdAt: new Date(response.user.createdAt),
-        //     updatedAt: new Date(response.user.updatedAt),
+        // const auth = new User({
+        //     uuid: response.auth.uuid,
+        //     username: response.auth.username,
+        //     email: response.auth.email,
+        //     name: response.auth.name,
+        //     surname: response.auth.surname,
+        //     createdAt: new Date(response.auth.createdAt),
+        //     updatedAt: new Date(response.auth.updatedAt),
         //     active: true,
         // });
         //

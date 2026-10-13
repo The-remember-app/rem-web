@@ -1,4 +1,4 @@
-import { User } from '../../entities/user';
+import { User } from '../../entities/study/user';
 
 export interface IAuthNetworkService {
     login(credentials: any): Promise<string>;

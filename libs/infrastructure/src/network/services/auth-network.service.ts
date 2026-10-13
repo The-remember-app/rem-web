@@ -1,4 +1,4 @@
-import { User } from '@rem-web/domain';
+import {IAuthNetworkService, User} from '@rem-web/domain';
 import {
     loginForAccessTokenTokenPost,
     readUsersMeMeGet,
@@ -10,7 +10,7 @@ import {setGlobalAccessToken} from "../api/api-client";
 
 // import { setGlobalAccessToken } from '../api/api-client';
 
-export class AuthNetworkService {
+export class AuthNetworkService implements IAuthNetworkService {
     constructor() {}
 
     public async login(credentials: BodyLoginForAccessTokenTokenPost): Promise<string> {
@@ -44,8 +44,8 @@ export class AuthNetworkService {
 
         if (userMeResponse.error || !userMeResponse.data?.data) {
             // TODO: Заглушка обработки ошибки получения профиля
-            console.error('[AuthService] Fetch /user/me error:', userMeResponse.error);
-            throw new Error('Failed to fetch user profile after authentication.');
+            console.error('[AuthService] Fetch /auth/me error:', userMeResponse.error);
+            throw new Error('Failed to fetch auth profile after authentication.');
         }
 
         const userDto = userMeResponse.data.data as UserDto;
@@ -56,6 +56,7 @@ export class AuthNetworkService {
             name: userDto.name,
             surname: userDto.surname,
             active: true,
+            password: null,
             createdAt: new Date(userDto.created_at),
             updatedAt: new Date(userDto.updated_at),
         });
