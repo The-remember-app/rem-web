@@ -1,8 +1,14 @@
-import { IUserRepository } from '@rem-web/domain';
-import {AuthUsersSyncUseCase, LogoutUserFrontUseCase} from '@rem-web/use-cases';
+import {IAuthNetworkService, IFolderNetworkService, IUserRepository} from '@rem-web/domain';
+// import { } from '@rem-web/use-cases';
 import { UserPresenter } from '../presenters/user.presenter';
-import {AuthUserFrontUseCase} from "@rem-web/use-cases";
-import {AuthNetworkService} from "@rem-web/infrastructure";
+import {
+    AuthUserFrontUseCase,
+    LogoutUserFrontUseCase,
+    AuthUsersSyncUseCase,
+    MasterSyncOrchestratorUseCase
+} from '@rem-web/use-cases';
+// import {AuthNetworkService} from "@rem-web/infrastructure";
+// import {AuthNetworkService} from "@rem-web/infrastructure";
 
 export interface FrontAppDependencies {
     userRepository: IUserRepository;
@@ -14,7 +20,9 @@ export interface FrontAppDependencies {
 export interface SyncDependencies {
     userRepository: IUserRepository;
     authSyncUseCase: AuthUsersSyncUseCase;
-    authNetworkService: AuthNetworkService;
+    authNetworkService: IAuthNetworkService;
     // userPresenter: UserPresenter;
     // logoutUserUseCase: LogoutUserFrontUseCase
+    folderNetworkService: IFolderNetworkService;
+    masterSyncOrchestratorUseCase: MasterSyncOrchestratorUseCase;
 }

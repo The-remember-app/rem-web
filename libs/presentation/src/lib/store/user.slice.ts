@@ -42,7 +42,7 @@ export const userReducer = userSlice.reducer;
 // };
 
 // export const userSlice = createSlice({
-//     name: 'user',
+//     name: 'auth',
 //     initialState,
 //     reducers: {
 //         setUser: (state, action: PayloadAction<UserDTO | null>) => {

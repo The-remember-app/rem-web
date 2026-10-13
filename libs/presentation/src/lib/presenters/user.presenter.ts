@@ -19,7 +19,7 @@ export class UserPresenter {
 
                 // Отправляем в Redux
                 this.dispatch(setUser(userDto));
-                // this.dispatch(setUser(user));
+                // this.dispatch(setUser(auth));
             } else {
                 this.dispatch(clearUser());
             }
