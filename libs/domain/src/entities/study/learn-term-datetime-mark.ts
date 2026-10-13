@@ -1,6 +1,9 @@
-import { WatchLearnType } from './enums';
+// domain/src/entities/learn-term-datetime-mark.ts
 
-export interface LearnTermDatetimeMarkProps {
+import { WatchLearnType } from './enums';
+import { ISyncableEntityProps, SyncableEntity} from '../sync/abs.entity';
+
+export interface LearnTermDatetimeMarkProps extends ISyncableEntityProps {
     uuid: string;
     userUuid: string;
     termUuid: string;
@@ -13,8 +16,7 @@ export interface LearnTermDatetimeMarkProps {
     updatedAt: Date;
 }
 
-export class LearnTermDatetimeMark implements LearnTermDatetimeMarkProps {
-    uuid: string;
+export class LearnTermDatetimeMark extends SyncableEntity implements LearnTermDatetimeMarkProps {
     userUuid: string;
     termUuid: string;
     startWatch: Date;
@@ -23,10 +25,13 @@ export class LearnTermDatetimeMark implements LearnTermDatetimeMarkProps {
     isLearnIterStart: boolean;
     watchType: WatchLearnType;
     createdAt: Date;
-    updatedAt: Date;
 
     constructor(props: LearnTermDatetimeMarkProps) {
-        this.uuid = props.uuid;
+        super(
+            props.uuid,
+            props.updatedAt,
+            props.syncState ?? 'synced',
+        );
         this.userUuid = props.userUuid;
         this.termUuid = props.termUuid;
         this.startWatch = props.startWatch;

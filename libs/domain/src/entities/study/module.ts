@@ -1,14 +1,23 @@
+// domain/src/entities/module.ts
+
 import { FolderOrModule } from './enums';
-// import { Term } from './term';
+import {
+     IPersonalSyncEntityProps,
+    ISyncableEntityProps,
+    PersSyncableEntity,
+    SyncableEntity
+} from '../sync/abs.entity';
 
-// export interface LearnProgress {
-//     writeSuccessCount: number;
-//     chooseSuccessCount: number;
-//     watchedCount: number;
-//     totalCount: number;
-// }
+export interface SharedModuleProps extends ISyncableEntityProps {
+    uuid: string;
+    name: string;
+    description?: string | null;
+    rootFolderUuid: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
-export interface ModuleProps {
+export interface ModuleProps extends SharedModuleProps, IPersonalSyncEntityProps {
     uuid: string;
     userUuid: string;
     name: string;
@@ -30,8 +39,27 @@ export interface ModuleProps {
     personalUpdatedAt: Date;
 }
 
-export class Module implements FolderOrModule, ModuleProps {
-    uuid: string;
+export class SharedModule extends SyncableEntity implements SharedModuleProps {
+    name: string;
+    description?: string | null;
+    rootFolderUuid: string;
+    createdAt: Date;
+
+    constructor(props: SharedModuleProps) {
+        super(
+            props.uuid,
+            props.updatedAt,
+            props.syncState ?? 'synced',
+        );
+        this.name = props.name;
+        this.description = props.description ?? null;
+        this.rootFolderUuid = props.rootFolderUuid;
+        this.createdAt = props.createdAt;
+        this.updatedAt = props.updatedAt;
+    }
+}
+
+export class Module extends PersSyncableEntity implements FolderOrModule, ModuleProps {
     userUuid: string;
     name: string;
     description?: string | null;
@@ -47,12 +75,16 @@ export class Module implements FolderOrModule, ModuleProps {
     choicesCount: number;
     isLearnt: boolean;
     createdAt: Date;
-    updatedAt: Date;
     personalCreatedAt: Date;
-    personalUpdatedAt: Date;
 
     constructor(props: ModuleProps) {
-        this.uuid = props.uuid;
+        super(
+            props.uuid,
+            props.updatedAt,
+            props.syncState ?? 'synced',
+            props.personalUpdatedAt,
+            props.personalSyncState ?? 'synced',
+        );
         this.userUuid = props.userUuid;
         this.name = props.name;
         this.description = props.description ?? null;
@@ -68,40 +100,6 @@ export class Module implements FolderOrModule, ModuleProps {
         this.choicesCount = props.choicesCount ?? 4;
         this.isLearnt = props.isLearnt ?? false;
         this.createdAt = props.createdAt;
-        this.updatedAt = props.updatedAt;
         this.personalCreatedAt = props.personalCreatedAt;
-        this.personalUpdatedAt = props.personalUpdatedAt;
     }
-
-    /**
-     * Чистая доменная логика расчета прогресса модуля по его терминам
-     */
-    // public calculateProgress(terms: Term[]): LearnProgress {
-    //     if (this.isLearnt) {
-    //         const count = terms.length;
-    //         return {
-    //             writeSuccessCount: count,
-    //             chooseSuccessCount: count,
-    //             watchedCount: count,
-    //             totalCount: count,
-    //         };
-    //     }
-    //
-    //     const writeSuccessCount = terms.filter(
-    //         (t) => t.writeErrorCounter <= 0 && t.watchCount !== 0
-    //     ).length;
-    //
-    //     const chooseSuccessCount = terms.filter(
-    //         (t) => t.chooseErrorCounter <= 0 && t.watchCount !== 0
-    //     ).length;
-    //
-    //     const watchedCount = terms.filter((t) => t.watchCount > 0).length;
-    //
-    //     return {
-    //         writeSuccessCount,
-    //         chooseSuccessCount,
-    //         watchedCount,
-    //         totalCount: terms.length,
-    //     };
-    // }
 }

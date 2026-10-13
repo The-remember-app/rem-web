@@ -19,7 +19,7 @@ export enum WatchLearnType {
 export interface FolderOrModule {
     uuid: string;
     userUuid: string;
-    rootFolderUuid: string;
+    rootFolderUuid: string|null;
     name: string;
 }
 

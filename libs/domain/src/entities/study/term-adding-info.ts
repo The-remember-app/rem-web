@@ -1,6 +1,9 @@
-import { AddInfoType, LearnWriteEntity } from './enums';
+// domain/src/entities/term-adding-info.ts
 
-export interface TermAddingInfoProps {
+import { AddInfoType, LearnWriteEntity } from './enums';
+import { ISyncableEntityProps, SyncableEntity} from '../sync/abs.entity';
+
+export interface TermAddingInfoProps extends ISyncableEntityProps {
     uuid: string;
     userUuid: string;
     textData?: string | null;
@@ -13,8 +16,7 @@ export interface TermAddingInfoProps {
     updatedAt: Date;
 }
 
-export class TermAddingInfo implements LearnWriteEntity, TermAddingInfoProps {
-    uuid: string;
+export class TermAddingInfo extends SyncableEntity implements LearnWriteEntity, TermAddingInfoProps {
     userUuid: string;
     textData: string | null;
     addingTextData: string | null;
@@ -23,10 +25,13 @@ export class TermAddingInfo implements LearnWriteEntity, TermAddingInfoProps {
     termUuid: string;
     parentAddInfoUuid: string;
     createdAt: Date;
-    updatedAt: Date;
 
     constructor(props: TermAddingInfoProps) {
-        this.uuid = props.uuid;
+        super(
+            props.uuid,
+            props.updatedAt,
+            props.syncState ?? 'synced',
+        );
         this.userUuid = props.userUuid;
         this.textData = props.textData ?? null;
         this.addingTextData = props.addingTextData ?? null;
@@ -37,8 +42,4 @@ export class TermAddingInfo implements LearnWriteEntity, TermAddingInfoProps {
         this.createdAt = props.createdAt;
         this.updatedAt = props.updatedAt;
     }
-
-    // get targetWrite(): string {
-    //     return this.textData ?? '';
-    // }
 }
