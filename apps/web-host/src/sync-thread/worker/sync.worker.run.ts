@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import { WorkerRequest, WorkerResponse, WORKER_COMMANDS } from '@rem-web/use-cases';
-import { setupSyncDependencies, SyncDependencies } from './sync.di';
+import { setupSyncDependencies } from './sync.di';
+import {SyncDependencies} from "@rem-web/presentation";
 
 let dependencies: SyncDependencies | null = null;
 const workerReady: Promise<void> = bootstrapWorker();
@@ -11,14 +12,14 @@ async function bootstrapWorker(): Promise<void> {
     dependencies.userRepository.observeActiveUser().subscribe({
         next: (user: any) => {
             if (user?.active) {
-                console.log('[Worker Auth] Active user detected:', user.uuid);
+                console.log('[Worker Auth] Active auth detected:', user.uuid);
             } else {
                 dependencies?.authNetworkService!.setToken(null)
                 console.log('[Worker Auth] User deactivated. Access token cleared.');
             }
         },
         error: (err: any) => {
-            console.error('[Worker Auth] Error observing user state:', err);
+            console.error('[Worker Auth] Error observing auth state:', err);
             dependencies?.authNetworkService!.setToken(null)
         },
     });
